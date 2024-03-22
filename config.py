@@ -7,11 +7,10 @@ class Config:
         self.dropout = 0.1
         self.learning_rate = 0.001
         self.weight_decay = 1e-4
-        self.num_epochs = 50
-        self.val_every = 5
-
+        self.num_epochs = 50 
+        self.val_every = 1 # validate every n epochs
+        self.batch_size = 1 # number of graphs in a batch
         self.dataset_dir = 'datasets/bm_dataset_pt'
-
         self.model_save_dir = 'saved_models'
 
     def __str__(self):

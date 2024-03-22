@@ -5,6 +5,8 @@ import torch
 import torch.optim as optim
 from torch.cuda.amp import GradScaler, autocast
 
+from torch_geometric.loader import DataLoader
+
 from sklearn.metrics import f1_score
 
 import time
@@ -40,10 +42,14 @@ def train(cfg):
     val_folder = os.path.join(cfg.dataset_dir, "val")
     test_folder = os.path.join(cfg.dataset_dir, "test")
 
-    print("\nLoading train, val and test graphs")
     train_graphs = utils.load_bm_graphs_pt(train_folder, device)    
     val_graphs = utils.load_bm_graphs_pt(val_folder, device)
     test_graphs = utils.load_bm_graphs_pt(test_folder, device)
+    print("\nLoaded train, val and test graphs")
+
+    train_loader = DataLoader(train_graphs, batch_size=cfg.batch_size, shuffle=True)
+    val_loader = DataLoader(val_graphs, batch_size=cfg.batch_size, shuffle=False)
+    test_loader = DataLoader(test_graphs, batch_size=cfg.batch_size, shuffle=False)
 
     if args.gnn == "eagnn":
         channel_dim = train_graphs[0].edge_attr.shape[1]
@@ -94,10 +100,6 @@ def train(cfg):
     
     # ------------ Build full model ------------
     combined_model = CombinedEdgeModel(gnn, classifier, args.graphlet)
-    try:
-        combined_model.load_state_dict(torch.load(f'{cfg.save_dir}/{model_name}_last.pth'))
-    except:
-        print("\nCould not load any previous weights.")
     combined_model = combined_model.to(device)
     combined_model.train()
 
@@ -128,13 +130,13 @@ def train(cfg):
         start_epoch_time = time.time()
         combined_model.train()
         tot_train_loss = 0
-        for b_idx, graph in enumerate(train_graphs):
+        for b_idx, graph in enumerate(train_loader):
             node_features = graph.x
             edge_list = graph.edge_index
             kites = graph.kites
             edge_labels = graph.y
             edge_attr = graph.edge_attr
-            
+
             optimizer.zero_grad()
             
             with autocast(enabled=torch.cuda.is_available()): 
@@ -155,7 +157,7 @@ def train(cfg):
             combined_model.eval()
             all_true = []
             all_pred_probs = []
-            for graph in val_graphs:
+            for graph in val_loader:
                 node_features = graph.x
                 edge_list = graph.edge_index
                 kites = graph.kites
@@ -212,7 +214,7 @@ def train(cfg):
 
     all_true_classes = []
     all_pred_classes = []
-    for graph in test_graphs:
+    for graph in test_loader:
         node_features = graph.x
         edge_list = graph.edge_index
         kites = graph.kites
