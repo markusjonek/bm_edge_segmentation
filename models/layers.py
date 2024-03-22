@@ -6,7 +6,7 @@ from torch_geometric.nn import MessagePassing
 
 class EAGNNLayer(MessagePassing):
     def __init__(self, input_dim, output_dim, channel_dim):
-        super(EAGNNLayer, self).__init__(aggr=None)  # Use sum aggregation.
+        super(EAGNNLayer, self).__init__(aggr='sum')  # Use sum aggregation.
 
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -28,7 +28,7 @@ class EAGNNLayer(MessagePassing):
         # x: node features [N, node_features]
         # edge_index: edge list [2, E]
         # edge_attr: edge features [E, p], where p is the number of features
-        
+
         support0 = torch.matmul(x, self.weight0)
         support1 = torch.matmul(x, self.weight1)
 
